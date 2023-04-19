@@ -1,0 +1,14 @@
+[Unit]
+Description=Manage the Calorek Heat Pump.
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/calorek
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
+
