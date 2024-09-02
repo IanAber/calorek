@@ -119,7 +119,8 @@ function goBack() {
 }
 
 function getCurrent() {
-    let tr = parseInt($("#timeRange").val());
+    let trControl = $("#timeRange");
+    let tr = parseInt(trControl.val());
     if (tr === 0)  {
         $("#customDateTimes").show();
         $("#waiting").show();
@@ -128,12 +129,12 @@ function getCurrent() {
         $("#customDateTimes").show();
         $("#waiting").show();
         refresh(buildURLFocusTimes());
-        $("#timeRange").val(0);
+        trControl.val(0);
     } else if (tr === 2) {
         $("#customDateTimes").show();
         $("#waiting").show();
         refresh(buildURLDoubleFocusTimes());
-        $("#timeRange").val(0);
+        trControl.val(0);
     } else {
         $("#customDateTimes").hide();
         $("#waiting").show();

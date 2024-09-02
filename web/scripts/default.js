@@ -126,7 +126,7 @@ function updateFields(data) {
     Suction = $("#SuctionTemperatures");
     SuctionVals = Suction.val();
     NewSuctionVals = [data.SuctionEvaporatorTemperature, data.SuctionSaturationTemperature, data.SuperheatTemperature];
-    if (SuctionVals[0] !== data.SuctionEvaporatorTemperature || SuctionVals[1] !== data.SuctionSaturationTemperature || SuctionVals[2] != data.SuperheatTemperature) {
+    if (SuctionVals[0] !== data.SuctionEvaporatorTemperature || SuctionVals[1] !== data.SuctionSaturationTemperature || SuctionVals[2] !== data.SuperheatTemperature) {
         Suction.jqxBarGauge('val', NewSuctionVals);
     }
     Compressor = $("#CompressorSpeedDial");
