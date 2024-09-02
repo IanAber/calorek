@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
@@ -19,11 +20,12 @@ var upgrader = websocket.Upgrader{
 
 var dataSignal *sync.Cond
 
-/**
+/*
+*
 Start the Web Socket server. This sends out data to all subscribers on a regular schedule so subscribers don't need to poll for updates.
 */
-func startDataWebSocket(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+func startDataWebSocket(ctx *gin.Context) {
+	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
 		log.Println(err)
 		return

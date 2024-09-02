@@ -10,6 +10,7 @@ function loadStatus() {
         })
 }
 
+
 function setOnOff(field, value) {
     if (value) {
         field.attr('src',"/images/on.png");
@@ -31,12 +32,16 @@ function showTimeoutMessage() {
 }
 
 var wstimeout;
+var loops;
+var jsonData;
 
 function receiveStatus() {
     setupGauges();
-    let url = "ws://" + window.location.host + "/ws";
+    let url = window.origin.replace("http", "ws") + "/ws";
+//    let url = "ws://" + window.location.host + "/ws";
     let conn = new WebSocket(url);
     wsTimeout = 0;
+    loops = 0;
 
     // let  Data = document.getElementById("Data");
 
@@ -52,7 +57,7 @@ function receiveStatus() {
         wstimeout = setTimeout(showTimeoutMessage, 15000)
         try {
             jsonData = JSON.parse(evt.data);
-            updateFields(jsonData);
+//            updateFields(jsonData);
         } catch (e) {
             alert(e);
         }
@@ -99,17 +104,46 @@ function updateFields(data) {
     setAlarm(data.Errors.FreezeCondition1, $("#FreezeCondition1Alarm"));
     setAlarm(data.Errors.WaterFlow, $("#WaterFlowAlarm"));
     setAlarm(data.Errors.DriveAlarm, $("#DriveAlarm"));
-    $("#Pressures").val([data.DischargePressure, data.SuctionPressure]);
-    $("#SourceTemp").val([data.SourceInTemp, data.SourceOutTemp]);
-    $("#LoadTemp").val([data.LoadTempIn, data.LoadTempOut]);
-    $("#SuctionTemperatures").val([data.SuctionEvaporatorTemperature, data.SuctionSaturationTemperature, data.SuperheatTemperature]);
-    $("#CompressorSpeedDial").val(data.CompressorSpeed);
-    $("#EEVPositionDial").val(data.EEVRequestedPosition);
+
+    let Pressures = $("#Pressures");
+    let PressureVals = Pressures.val();
+    NewPressureVals = [data.DischargePressure, data.SuctionPressure];
+    if (PressureVals[0] !== NewPressureVals[0] || PressureVals[1] !== NewPressureVals[1]) {
+        Pressures.jqxBarGauge('val', NewPressureVals);
+    }
+    Source = $("#SourceTemp");
+    SourceVals = Source.val();
+    NewSourceVals = [data.SourceInTemp, data.SourceOutTemp];
+    if (SourceVals[0] !== data.SourceInTemp || SourceVals[1] !== data.SourceOutTemp) {
+        Source.jqxBarGauge('val', NewSourceVals);
+    }
+    Load = $("#LoadTemp");
+    LoadVals = Load.val();
+    NewLoadVals = [data.LoadTempIn, data.LoadTempOut];
+    if (LoadVals[0] !== data.LoadTempIn || LoadVals[1] !== data.LoadTempOut) {
+        Load.jqxBarGauge('val', NewLoadVals);
+    }
+    Suction = $("#SuctionTemperatures");
+    SuctionVals = Suction.val();
+    NewSuctionVals = [data.SuctionEvaporatorTemperature, data.SuctionSaturationTemperature, data.SuperheatTemperature];
+    if (SuctionVals[0] !== data.SuctionEvaporatorTemperature || SuctionVals[1] !== data.SuctionSaturationTemperature || SuctionVals[2] != data.SuperheatTemperature) {
+        Suction.jqxBarGauge('val', NewSuctionVals);
+    }
+    Compressor = $("#CompressorSpeedDial");
+    if (Compressor.val() !== data.CompressorSpeed) {
+        Compressor.val(data.CompressorSpeed);
+    }
+    EEVPosition = $("#EEVPositionDial");
+    if (EEVPosition.val() !== data.EEVRequestedPosition) {
+        EEVPosition.val(data.EEVRequestedPosition);
+    }
 }
 
-function toggleCoil(id) {
+//function toggleCoil(id) {
+function toggleCoil() {
     var xhr = new XMLHttpRequest();
-    xhr.open('PATCH','toggleCoil?coil=' + id);
+
+    xhr.open('PUT','https://firefly.home:20080/setRelay/Y3/on');
     xhr.send();
 }
 
@@ -126,8 +160,8 @@ function setupGauges() {
         height: controlsHeight,
         values: [0.0, 0.0],
         min: 50,
-        max: 300,
-        animationDuration: 500,
+        max: 330,
+        animationDuration: 0,
         startAngle: 265,
         endAngle: 275,
         title:	{
@@ -158,7 +192,7 @@ function setupGauges() {
         values: [0.0, 0.0],
         min: 5,
         max: 40,
-        animationDuration: 500,
+        animationDuration: 0,
         startAngle: 265,
         endAngle: 275,
         title:	{
@@ -189,7 +223,7 @@ function setupGauges() {
         values: [0.0, 0.0],
         min: 0,
         max: 60,
-        animationDuration: 500,
+        animationDuration: 0,
         startAngle: 265,
         endAngle: 275,
         title:	{
@@ -218,9 +252,9 @@ function setupGauges() {
         width: controlsWidth,
         height: controlsHeight,
         values: [0.0, 0.0, 0.0],
-        min: -5,
-        max: 30,
-        animationDuration: 500,
+        min: -10,
+        max: 40,
+        animationDuration: 0,
         startAngle: 265,
         endAngle: 275,
         title:	{
@@ -252,11 +286,11 @@ function setupGauges() {
         radius: gaugeRadius - 25,
         ticksMinor: {interval: 50, size: '5%'},
         ticksMajor: {interval: 200,size: '9%'},
-        labels: {interval:400},
+        labels: {interval:200},
         min: 0,
         max: 1400,
         value: 0,
-        animationDuration: 500,
+        animationDuration: 250,
         cap: {size: '5%', style: { fill: '#ff0000', stroke: '#00ff00' }, visible: true},
         caption: {value: 'Compressor RPM', position: 'bottom', offset: [0, 10], visible: true},
     });
@@ -270,8 +304,11 @@ function setupGauges() {
         min: 0,
         max: 1500,
         value: 0,
-        animationDuration: 500,
+        animationDuration: 250,
         cap: {size: '5%', style: { fill: '#ff0000', stroke: '#00ff00' }, visible: true},
         caption: {value: 'EEV Position', position: 'bottom', offset: [0, 10], visible: true},
     });
+    setInterval(() => {
+        updateFields(jsonData);
+    }, 1000);
 }

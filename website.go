@@ -2,73 +2,122 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"log"
+	"net"
 	"net/http"
-	"path/filepath"
+	"time"
 )
 
-type neuteredFileSystem struct {
-	fs http.FileSystem
-}
+func ErrorHandler() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Next()
 
-func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
-	f, err := nfs.fs.Open(path)
-	if err != nil {
-		return nil, err
+		// status -1 doesn't overwrite existing status code
+		ctx.String(-1, ctx.Errors.String())
 	}
-
-	s, err := f.Stat()
-	if s.IsDir() {
-		index := filepath.Join(path, "index.html")
-		if _, err := nfs.fs.Open(index); err != nil {
-			closeErr := f.Close()
-			if closeErr != nil {
-				return nil, closeErr
-			}
-
-			return nil, err
-		}
-	}
-
-	return f, nil
 }
 
 func setUpWebSite() {
-	router := mux.NewRouter().StrictSlash(true)
+	errs := make(chan error)
+	router := gin.Default()
+	if err := router.SetTrustedProxies(nil); err != nil {
+		log.Println(err)
+	}
+
+	//	router := mux.NewRouter().StrictSlash(true)
 	// Register with the WebSocket which will then push a JSON payload with data to keep the displayed data up to date. No polling necessary.
-	router.HandleFunc("/ws", startDataWebSocket).Methods("GET")
+	router.LoadHTMLGlob(Settings.WebFiles + "/templates/*")
+	router.Use(ErrorHandler())
 
-	router.HandleFunc("/status", getStatus).Methods("GET")
-	router.HandleFunc("/", defaultPage).Methods("GET")
+	router.Static("/css", Settings.WebFiles+"/css/")
+	router.Static("/images", Settings.WebFiles+"/images/")
+	router.Static("/scripts", Settings.WebFiles+"/scripts/")
+	router.StaticFile("/favicon.ico", Settings.WebFiles+"/images/favicon.ico")
+	router.GET("/ws", startDataWebSocket)
+	router.GET("/status", getStatus)
+	router.GET("/", defaultPage)
+	router.GET("/historyData", getHistoryData)
+	router.GET("/chart.html", getChart)
+	router.PATCH("/toggleCoil", toggleCoil)
 
-	router.HandleFunc("/toggleCoil", toggleCoil).Methods("PATCH")
+	log.Printf("Starting secure site on port %d", Settings.WebPort)
+	go startSecureSite(router, errs)
+	log.Printf("Starting http site on port %d", Settings.LocalPort)
+	go startInsecureSite(router, errs)
 
-	fileServer := http.FileServer(neuteredFileSystem{http.Dir(webFiles)})
-	router.PathPrefix("/").Handler(http.StripPrefix("/", fileServer))
-
-	port := fmt.Sprintf(":%s", WebPort)
-	log.Fatal(http.ListenAndServe(port, router))
+	select {
+	case err := <-errs:
+		log.Println("Web service failed to sstart - %v", err)
+	}
 }
 
-func defaultPage(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, webFiles+"/default.html")
+func getChart(ctx *gin.Context) {
+	ctx.HTML(http.StatusOK, "chart.html", nil)
+}
+func startInsecureSite(router *gin.Engine, errs chan error) {
+	l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", GetLocalIP(), Settings.LocalPort))
+	if err != nil {
+		log.Fatal(err)
+	}
+	errs <- http.Serve(l, router)
 }
 
-func getStatus(w http.ResponseWriter, _ *http.Request) {
-	if strJson, err := Params.getJSON(); err != nil {
-		fmt.Println(err)
+func startSecureSite(router *gin.Engine, errs chan error) {
+	l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", Settings.WebPort))
+	if err != nil {
+		log.Fatal(err)
+	}
+	errs <- http.ServeTLS(l, router, Settings.SSLCertificateFile, Settings.SSLPrivateKeyFile)
+}
+
+func GetLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+	for _, address := range addrs {
+		// check the address type and if it is not a loopback the display it
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+	return ""
+}
+
+func defaultPage(ctx *gin.Context) {
+	ctx.HTML(http.StatusOK, "default.html", nil)
+}
+
+func getStatus(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, &Params)
+}
+
+func getHistoryData(ctx *gin.Context) {
+	const DeviceString = "getHistoryData"
+
+	if pDB == nil {
+		ReturnJSONErrorString(ctx, DeviceString, "No Database", http.StatusInternalServerError, true)
+		return
+	}
+
+	if start, end, err := GetTimeRange(ctx); err != nil {
+		ReturnJSONError(ctx, DeviceString, err, http.StatusBadRequest, false)
 	} else {
-		if _, err := fmt.Fprintln(w, string(strJson)); err != nil {
-			log.Println(err)
+		if end.Sub(start) > time.Hour {
+			SendDataAsJSON(ctx, DeviceString, DataByMinute, start, end)
+		} else {
+			SendDataAsJSON(ctx, DeviceString, DataBySecond, start, end)
 		}
 	}
 }
 
-func toggleCoil(_ http.ResponseWriter, r *http.Request) {
+func toggleCoil(ctx *gin.Context) {
 	client := &http.Client{}
-	address := r.FormValue("coil")
-	url := fmt.Sprintf("http://aberhome1.home:8085/toggleCoil?coil=" + address)
+	address := ctx.PostForm("coil")
+	url := fmt.Sprintf("https://firefly.home:20080/toggleCoil?coil=" + address)
 
 	req, err := http.NewRequest(http.MethodPatch, url, nil) //bytes.NewBuffer(payload))
 	if err != nil {

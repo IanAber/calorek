@@ -76,57 +76,58 @@ type ParamsType struct {
 	EEVRequestedPosition         uint16
 	LoadTempIn                   float64
 	CompressorSpeed              uint16
-	EEV2RequestedPosition        uint16
-	LoadWaterValvePosition       uint8
-	Drive1Alarms                 uint8
-	Drive1AlarmTimer             uint16
-	Drive2Alarms                 uint8
-	Drive2AlarmTimer             uint8
-	TimerAuxHeater               uint16
-	DemandStatus                 DemandStatusType
-	Errors                       ErrorFlagsType
-	PIDSetpoint                  uint16
-	Work3                        uint8
-	DemandG1316                  uint8
-	Compressor1Current           uint16
-	Compressor1Power             uint16
-	Y1MinimumOutputTemperature   uint16
-	Y1MaximumOutputTemperature   uint16
-	Y1MinimumWaterTemperature    uint16
-	Y1MaximumWaterTemperature    uint16
-	Y2MinimumOutputTemperature   uint16
-	Y2MaximumOutputTemperature   uint16
-	Y2MinimumWaterTemperature    uint16
-	Y2MaximumWaterTemperature    uint16
-	WaterSetpoint                uint16
-	PID1Setpoint                 uint16
-	CriticalAlarmTimer           uint16
-	LowPressureTimer             uint16
-	CompressorVoltage            uint16
-	CompressorCurrent            uint16
-	SourcePressure               uint16
-	LoadPressure                 uint16
-	PotSourceHP                  uint16
-	PotSourceLP                  uint16
-	PotLoadHP                    uint16
-	PotLoadLP                    uint16
-	CompressorActualSpeed        uint16
-	PT100_1_D24_D31              uint8
-	PT100_1_D16_D23              uint8
-	PT100_1_D8_D15               uint8
-	PT100_1_D0_D7                uint8
-	PT100_2_D24_D31              uint8
-	PT100_2_D16_D23              uint8
-	PT100_2_D8_D15               uint8
-	PT100_2_D0_D7                uint8
-	PT100_3_D24_D31              uint8
-	PT100_3_D16_D23              uint8
-	PT100_3_D8_D15               uint8
-	PT100_3_D0_D7                uint8
-	PT100_4_D24_D31              uint8
-	PT100_4_D16_D23              uint8
-	PT100_4_D8_D15               uint8
-	PT100_4_D0_D7                uint8
+	//	EEV2RequestedPosition        uint16
+	//	LoadWaterValvePosition       uint8
+	Drive1Alarms     uint8
+	Drive1AlarmTimer uint16
+	//	Drive2Alarms                 uint8
+	//	Drive2AlarmTimer             uint8
+	//	TimerAuxHeater               uint16
+	DemandStatus DemandStatusType
+	Errors       ErrorFlagsType
+	PIDSetpoint  uint16
+	//	Work3                        uint8
+	//	DemandG1316                  uint8
+	Compressor1Current uint16
+	//	Compressor1Power             uint16
+	Compressor1Power uint8
+	//Y1MinimumOutputTemperature   uint16
+	//Y1MaximumOutputTemperature   uint16
+	//Y1MinimumWaterTemperature    uint16
+	//Y1MaximumWaterTemperature    uint16
+	//Y2MinimumOutputTemperature   uint16
+	//Y2MaximumOutputTemperature   uint16
+	//Y2MinimumWaterTemperature    uint16
+	//Y2MaximumWaterTemperature    uint16
+	//WaterSetpoint                uint16
+	PID1Setpoint       uint16
+	CriticalAlarmTimer uint16
+	//	LowPressureTimer             uint16
+	CompressorVoltage uint8
+	CompressorCurrent uint8
+	SourcePressure    uint16
+	//LoadPressure                 uint16
+	//PotSourceHP                  uint16
+	//PotSourceLP                  uint16
+	//PotLoadHP                    uint16
+	//PotLoadLP                    uint16
+	CompressorActualSpeed uint16
+	//PT100_1_D24_D31              uint8
+	//PT100_1_D16_D23              uint8
+	//PT100_1_D8_D15               uint8
+	//PT100_1_D0_D7                uint8
+	//PT100_2_D24_D31              uint8
+	//PT100_2_D16_D23              uint8
+	//PT100_2_D8_D15               uint8
+	//PT100_2_D0_D7                uint8
+	//PT100_3_D24_D31              uint8
+	//PT100_3_D16_D23              uint8
+	//PT100_3_D8_D15               uint8
+	//PT100_3_D0_D7                uint8
+	//PT100_4_D24_D31              uint8
+	//PT100_4_D16_D23              uint8
+	//PT100_4_D8_D15               uint8
+	//PT100_4_D0_D7                uint8
 	Pid1P                        uint16
 	SuctionSaturationTemperature float64
 	SuperheatTemperature         float64
@@ -257,58 +258,77 @@ func (p *ParamsType) setValues(paramBuf []byte) {
 
 	Params.Drive1Alarms = paramBuf[35]
 
-	Params.EEV2RequestedPosition = binary.BigEndian.Uint16(paramBuf[36:38])
-	Params.LoadWaterValvePosition = paramBuf[38]
-	Params.Drive2Alarms = paramBuf[39]
-	Params.setErrorFlags(paramBuf[43], paramBuf[51], paramBuf[46])
-	Params.Drive1AlarmTimer = binary.BigEndian.Uint16(paramBuf[44:46])
-	Params.TimerAuxHeater = binary.BigEndian.Uint16(paramBuf[52:54])
+	//	Params.EEV2RequestedPosition = binary.BigEndian.Uint16(paramBuf[36:38])
+	//	Params.LoadWaterValvePosition = paramBuf[38]
+	//	Params.Drive2Alarms = paramBuf[39]
+	//	Params.setErrorFlags(paramBuf[43], paramBuf[51], paramBuf[46])
+	//	Params.Drive1AlarmTimer = binary.BigEndian.Uint16(paramBuf[44:46])
+	Params.Drive1AlarmTimer = uint16(paramBuf[44])
+	//	Params.TimerAuxHeater = binary.BigEndian.Uint16(paramBuf[52:54])
 	Params.setDemandStatus(paramBuf[54])
-	Params.PIDSetpoint = binary.BigEndian.Uint16(paramBuf[55:57])
-	Params.Drive2AlarmTimer = paramBuf[58]
-	Params.Work3 = paramBuf[59]
-	Params.DemandG1316 = paramBuf[60]
-	Params.Compressor1Current = binary.BigEndian.Uint16(paramBuf[61:63])
-	Params.Compressor1Power = binary.BigEndian.Uint16(paramBuf[63:65])
 
-	Params.Y1MinimumOutputTemperature = binary.BigEndian.Uint16(paramBuf[65:67])
-	Params.Y1MaximumOutputTemperature = binary.BigEndian.Uint16(paramBuf[67:69])
-	Params.Y1MinimumWaterTemperature = binary.BigEndian.Uint16(paramBuf[69:71])
-	Params.Y1MaximumWaterTemperature = binary.BigEndian.Uint16(paramBuf[71:73])
-	Params.Y2MinimumOutputTemperature = binary.BigEndian.Uint16(paramBuf[73:75])
-	Params.Y2MaximumOutputTemperature = binary.BigEndian.Uint16(paramBuf[75:77])
-	Params.Y2MinimumWaterTemperature = binary.BigEndian.Uint16(paramBuf[77:79])
-	Params.Y2MaximumWaterTemperature = binary.BigEndian.Uint16(paramBuf[79:81])
-	Params.WaterSetpoint = binary.BigEndian.Uint16(paramBuf[81:83])
-	Params.PID1Setpoint = binary.BigEndian.Uint16(paramBuf[83:85])
-	Params.CriticalAlarmTimer = binary.BigEndian.Uint16(paramBuf[85:87])
-	Params.LowPressureTimer = binary.BigEndian.Uint16(paramBuf[87:89])
-	Params.CompressorVoltage = binary.BigEndian.Uint16(paramBuf[89:91])
-	Params.CompressorCurrent = binary.BigEndian.Uint16(paramBuf[91:93])
-	Params.SourcePressure = binary.BigEndian.Uint16(paramBuf[93:95])
-	Params.LoadPressure = binary.BigEndian.Uint16(paramBuf[95:97])
-	Params.PotSourceHP = binary.BigEndian.Uint16(paramBuf[97:99])
-	Params.PotSourceLP = binary.BigEndian.Uint16(paramBuf[99:101])
-	Params.PotLoadHP = binary.BigEndian.Uint16(paramBuf[101:103])
-	Params.PotLoadLP = binary.BigEndian.Uint16(paramBuf[103:105])
-	Params.CompressorActualSpeed = binary.BigEndian.Uint16(paramBuf[105:107])
-	Params.PT100_1_D24_D31 = paramBuf[107]
-	Params.PT100_1_D16_D23 = paramBuf[108]
-	Params.PT100_1_D8_D15 = paramBuf[109]
-	Params.PT100_1_D0_D7 = paramBuf[110]
-	Params.PT100_2_D24_D31 = paramBuf[111]
-	Params.PT100_2_D16_D23 = paramBuf[112]
-	Params.PT100_2_D8_D15 = paramBuf[113]
-	Params.PT100_2_D0_D7 = paramBuf[114]
-	Params.PT100_3_D24_D31 = paramBuf[115]
-	Params.PT100_3_D16_D23 = paramBuf[116]
-	Params.PT100_3_D8_D15 = paramBuf[117]
-	Params.PT100_3_D0_D7 = paramBuf[118]
-	Params.PT100_4_D24_D31 = paramBuf[119]
-	Params.PT100_4_D16_D23 = paramBuf[120]
-	Params.PT100_4_D8_D15 = paramBuf[121]
-	Params.PT100_4_D0_D7 = paramBuf[122]
-	Params.Pid1P = binary.BigEndian.Uint16(paramBuf[123:125])
+	Params.PIDSetpoint = binary.BigEndian.Uint16(paramBuf[87:89])
+
+	//	Params.Drive2AlarmTimer = paramBuf[58]
+	//	Params.Work3 = paramBuf[59]
+	//	Params.DemandG1316 = paramBuf[60]
+	Params.Compressor1Current = binary.BigEndian.Uint16(paramBuf[61:63])
+	//	Params.Compressor1Power = binary.BigEndian.Uint16(paramBuf[63:65])
+	Params.Compressor1Power = paramBuf[63]
+
+	//Params.Y1MinimumOutputTemperature = binary.BigEndian.Uint16(paramBuf[65:67])
+	//Params.Y1MaximumOutputTemperature = binary.BigEndian.Uint16(paramBuf[67:69])
+	//Params.Y1MinimumWaterTemperature = binary.BigEndian.Uint16(paramBuf[69:71])
+	//Params.Y1MaximumWaterTemperature = binary.BigEndian.Uint16(paramBuf[71:73])
+	//Params.Y2MinimumOutputTemperature = binary.BigEndian.Uint16(paramBuf[73:75])
+	//Params.Y2MaximumOutputTemperature = binary.BigEndian.Uint16(paramBuf[75:77])
+	//Params.Y2MinimumWaterTemperature = binary.BigEndian.Uint16(paramBuf[77:79])
+	//Params.Y2MaximumWaterTemperature = binary.BigEndian.Uint16(paramBuf[79:81])
+	//	Params.WaterSetpoint = binary.BigEndian.Uint16(paramBuf[81:83])
+
+	Params.PID1Setpoint = binary.BigEndian.Uint16(paramBuf[87:89])
+
+	Params.CriticalAlarmTimer = binary.BigEndian.Uint16(paramBuf[82:84])
+
+	//	Params.LowPressureTimer = binary.BigEndian.Uint16(paramBuf[87:89])
+
+	//	Params.CompressorVoltage = binary.BigEndian.Uint16(paramBuf[89:91])
+	Params.CompressorVoltage = paramBuf[62]
+
+	//	Params.CompressorCurrent = binary.BigEndian.Uint16(paramBuf[91:93])
+	Params.CompressorCurrent = paramBuf[61]
+
+	//	Params.SourcePressure = binary.BigEndian.Uint16(paramBuf[93:95])
+	Params.SourcePressure = binary.BigEndian.Uint16(paramBuf[36:38])
+
+	//	Params.LoadPressure = binary.BigEndian.Uint16(paramBuf[95:97])
+	//	Params.PotSourceHP = binary.BigEndian.Uint16(paramBuf[97:99])
+	//	Params.PotSourceLP = binary.BigEndian.Uint16(paramBuf[99:101])
+	//	Params.PotLoadHP = binary.BigEndian.Uint16(paramBuf[101:103])
+	//	Params.PotLoadLP = binary.BigEndian.Uint16(paramBuf[103:105])
+
+	//	Params.CompressorActualSpeed = binary.BigEndian.Uint16(paramBuf[105:107])
+	Params.CompressorActualSpeed = binary.BigEndian.Uint16(paramBuf[84:86])
+
+	//Params.PT100_1_D24_D31 = paramBuf[107]
+	//Params.PT100_1_D16_D23 = paramBuf[108]
+	//Params.PT100_1_D8_D15 = paramBuf[109]
+	//Params.PT100_1_D0_D7 = paramBuf[110]
+	//Params.PT100_2_D24_D31 = paramBuf[111]
+	//Params.PT100_2_D16_D23 = paramBuf[112]
+	//Params.PT100_2_D8_D15 = paramBuf[113]
+	//Params.PT100_2_D0_D7 = paramBuf[114]
+	//Params.PT100_3_D24_D31 = paramBuf[115]
+	//Params.PT100_3_D16_D23 = paramBuf[116]
+	//Params.PT100_3_D8_D15 = paramBuf[117]
+	//Params.PT100_3_D0_D7 = paramBuf[118]
+	//Params.PT100_4_D24_D31 = paramBuf[119]
+	//Params.PT100_4_D16_D23 = paramBuf[120]
+	//Params.PT100_4_D8_D15 = paramBuf[121]
+	//Params.PT100_4_D0_D7 = paramBuf[122]
+
+	//	Params.Pid1P = binary.BigEndian.Uint16(paramBuf[123:125])
+	Params.Pid1P = binary.BigEndian.Uint16(paramBuf[87:89])
 
 }
 

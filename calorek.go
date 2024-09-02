@@ -14,17 +14,11 @@ import (
 )
 
 var (
-	WebPort          string
-	databaseServer   string
-	databasePort     string
-	databaseName     string
-	databaseLogin    string
-	databasePassword string
-	webFiles         string
-	pDB              *sql.DB
-	Params           ParamsType
-	logStatement     *sql.Stmt
-	s                serial.Port
+	pDB          *sql.DB
+	logStatement *sql.Stmt
+	s            serial.Port
+	Settings     SettingsType
+	Params       ParamsType
 )
 
 func ToTemperature(buffer []byte) float64 {
@@ -37,7 +31,7 @@ func connectToDatabase() (*sql.DB, *sql.Stmt, error) {
 		pDB = nil
 	}
 	// Set the time zone to Local to correctly record times
-	var sConnectionString = databaseLogin + ":" + databasePassword + "@tcp(" + databaseServer + ":" + databasePort + ")/" + databaseName + "?loc=Local"
+	var sConnectionString = Settings.DatabaseLogin + ":" + Settings.DatabasePassword + "@tcp(" + Settings.DatabaseServer + ":" + Settings.DatabasePort + ")/" + Settings.DatabaseName + "?loc=Local"
 
 	db, err := sql.Open("mysql", sConnectionString)
 	if err != nil {
@@ -49,18 +43,25 @@ func connectToDatabase() (*sql.DB, *sql.Stmt, error) {
 		pDB = nil
 		return nil, nil, err
 	}
-	logStatement, err := db.Prepare("INSERT INTO heatpump.values(dischargePressure, suctionPressure, sourceInTemp, sourceOutTemp, loadInTemp, loadOutTemp, compressorSpeed, errorFlags, demandStatus) VALUES  (?,?,?,?,?,?,?,?,?)")
+	logStatement, err := db.Prepare(`INSERT INTO heatpump.values(dischargePressure,
+		suctionPressure, sourceInTemp, sourceOutTemp, loadInTemp, loadOutTemp, 
+		compressorSpeed, errorFlags, demandStatus, eev_pos, demand) VALUES  (?,?,?,?,?,?,?,?,?,?,?)`)
 	return db, logStatement, err
 }
 
 func init() {
-	flag.StringVar(&WebPort, "WebPort", "28080", "Web port")
-	flag.StringVar(&webFiles, "webFiles", "/calorek/web", "Path to the WEB files location")
-	flag.StringVar(&databaseServer, "sqlServer", "localhost", "MySQL Server")
-	flag.StringVar(&databaseName, "database", "heatpump", "Database name")
-	flag.StringVar(&databaseLogin, "dbUser", "logger", "Database login user name")
-	flag.StringVar(&databasePassword, "dbPassword", "logger", "Database user password")
-	flag.StringVar(&databasePort, "dbPort", "3306", "Database port")
+	flag.IntVar(&Settings.WebPort, "WebPort", 28080, "Web port")
+	flag.IntVar(&Settings.LocalPort, "LocalPort", 8090, "Local port")
+	flag.StringVar(&Settings.WebFiles, "webFiles", "/calorek/web", "Path to the WEB files location")
+	flag.StringVar(&Settings.DatabaseServer, "sqlServer", "localhost", "MySQL Server")
+	flag.StringVar(&Settings.DatabaseName, "database", "heatpump", "Database name")
+	flag.StringVar(&Settings.DatabaseLogin, "dbUser", "logger", "Database login user name")
+	flag.StringVar(&Settings.DatabasePassword, "dbPassword", "logger", "Database user password")
+	flag.StringVar(&Settings.DatabasePort, "dbPort", "3306", "Database port")
+	flag.StringVar(&Settings.SSLCertificateFile, "SSLCert", "/certs/fullchain.cer", "Path to the SSL Certificate file")
+	flag.StringVar(&Settings.SSLPrivateKeyFile, "SSLPrivateKey", "/certs/elektrik.green.key", "Path to the SSL Private Key file")
+	flag.StringVar(&Settings.SerialPort, "SerialPort", "/dev/ttyUSB0", "Port that the heat pump is connected to. You should use a by-path definition.")
+	flag.Parse()
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 
 	log.Println("Starting the WEB site.")
@@ -89,7 +90,7 @@ func ConnectSerial() serial.Port {
 		DataBits: 8,
 		StopBits: serial.OneStopBit,
 	}
-	port, err := serial.Open("/dev/ttyUSB0", mode)
+	port, err := serial.Open(Settings.SerialPort, mode)
 	if err != nil {
 		log.Println(err)
 		return nil
@@ -97,14 +98,14 @@ func ConnectSerial() serial.Port {
 	if err := port.SetReadTimeout(time.Millisecond * 150); err != nil {
 		log.Println(err)
 	}
-	log.Println("Serial port connected")
+	log.Printf("Serial port connected on %s", Settings.SerialPort)
 	return port
 }
 
 func RestartSerial() serial.Port {
 	log.Println("Restarting serial port")
 	if s != nil {
-		log.Println("Closing ttyUSB2")
+		log.Println("Closing ttyUSB")
 		if err := s.Close(); err != nil {
 			log.Println(err)
 		}
@@ -131,7 +132,8 @@ func main() {
 	log.Println("Starting main.")
 	dataSignal = sync.NewCond(&sync.Mutex{})
 
-	paramBuf := make([]byte, 125)
+	//	paramBuf := make([]byte, 125)
+	paramBuf := make([]byte, 107)
 	idx := 0
 	timeout := 0
 	for {
@@ -150,6 +152,9 @@ func main() {
 				timeout = 0
 			}
 			if n == 0 {
+				//if idx != 0 {
+				//	log.Printf("%d bytes thrown away. Waiting for %d", idx, len(paramBuf))
+				//}
 				idx = 0
 			} else {
 				paramBuf[idx] = buf[0]
@@ -167,7 +172,18 @@ func main() {
 						}
 					}
 					if logStatement != nil {
-						if _, err := logStatement.Exec(Params.DischargePressure, Params.SuctionPressure, Params.SourceInTemp, Params.SourceOutTemp, Params.LoadTempIn, Params.LoadTempOut, Params.CompressorSpeed, Params.getErrorFlags(), Params.getDemandStatus()); err != nil {
+						if _, err := logStatement.Exec(Params.DischargePressure,
+							Params.SuctionPressure,
+							Params.SourceInTemp,
+							Params.SourceOutTemp,
+							Params.LoadTempIn,
+							Params.LoadTempOut,
+							Params.CompressorSpeed,
+							Params.getErrorFlags(),
+							Params.getDemandStatus(),
+							Params.EEVRequestedPosition,
+							0); err != nil {
+
 							log.Println("Database error - ", err)
 							if err := pDB.Close(); err != nil {
 								log.Println(err)
